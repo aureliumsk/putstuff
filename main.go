@@ -138,7 +138,7 @@ func allFiles(w http.ResponseWriter, req *http.Request) {
 }
 
 func main() {
-	http.HandleFunc("/files/{name}", genericFileAccess)
+	http.HandleFunc("/files/{name...}", genericFileAccess)
 	http.HandleFunc("/files", allFiles)
 
 	log.Fatal(http.ListenAndServe(":8000", nil))
