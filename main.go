@@ -9,12 +9,15 @@ import (
 	"net/http"
 	"os"
 	"path"
+	"flag"
 	"strconv"
 )
 
-const dirName = "./uploads"
-
-var dir = os.DirFS(dirName)
+var (
+	uploadPath *string = flag.String("uploads", "./uploads", "upload path")
+	bind *string = flag.String("bind", ":8000", "bind address")
+)
+var dir fs.FS
 
 func genericFileAccess(w http.ResponseWriter, r *http.Request) {
 	filename := r.PathValue("name")
@@ -46,7 +49,7 @@ func genericFileAccess(w http.ResponseWriter, r *http.Request) {
 		} else {
 			successCode = http.StatusNoContent
 		}
-		file, err := os.Create(path.Join(dirName, filename))
+		file, err := os.Create(path.Join(*uploadPath, filename))
 		defer file.Close()
 		if err != nil {
 			log.Printf("Unable to create new file: %v\n", err)
@@ -63,7 +66,7 @@ func genericFileAccess(w http.ResponseWriter, r *http.Request) {
 
 	case http.MethodDelete:
 		// Delete logic (wow, it's so simple)
-		err := os.Remove(path.Join(dirName, filename))
+		err := os.Remove(path.Join(*uploadPath, filename))
 		if err != nil {
 			if os.IsNotExist(err) {
 				w.WriteHeader(http.StatusNotFound)
@@ -138,8 +141,10 @@ func allFiles(w http.ResponseWriter, req *http.Request) {
 }
 
 func main() {
-	http.HandleFunc("/files/{name...}", genericFileAccess)
+	flag.Parse()
+	dir = os.DirFS(*uploadPath)
+	http.HandleFunc("/files/{name}", genericFileAccess)
 	http.HandleFunc("/files", allFiles)
 
-	log.Fatal(http.ListenAndServe(":8000", nil))
+	log.Fatal(http.ListenAndServe(*bind, nil))
 }
